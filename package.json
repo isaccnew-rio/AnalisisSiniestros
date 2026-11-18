@@ -1,0 +1,24 @@
+{
+  "name": "geoportal-analisis-siniestros-riobamba",
+  "version": "2.0.0",
+  "description": "Geoportal Analitico y Dashboard Interactivo de Siniestralidad y Seguridad Vial de Riobamba",
+  "main": "generar_analisis.js",
+  "scripts": {
+    "actualizar": "node generar_analisis.js"
+  },
+  "keywords": [
+    "gis",
+    "leaflet",
+    "riobamba",
+    "seguridad-vial",
+    "analisis-estadistico",
+    "supabase"
+  ],
+  "author": "Pedro Jose Inca Novoa",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "pdfkit": "^0.19.1",
+    "pdfkit-table": "^0.2.11"
+  }
+}

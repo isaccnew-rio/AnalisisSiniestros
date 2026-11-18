@@ -1,0 +1,2334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geoportal de Análisis Estadístico y Espacial de Siniestros de Tránsito — Riobamba</title>
+
+    <!-- Leaflet GIS Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+    <style>
+        :root {
+            --bg-dark: #070B14;
+            --surface-glass: rgba(15, 23, 42, 0.85);
+            --surface-card: rgba(20, 30, 50, 0.92);
+            --surface-subcard: rgba(15, 23, 42, 0.78);
+            --border-glass: rgba(255, 255, 255, 0.12);
+            --primary: #3B82F6;
+            --primary-glow: rgba(59, 130, 246, 0.35);
+            --danger: #EF4444;
+            --danger-glow: rgba(239, 68, 68, 0.35);
+            --warning: #F59E0B;
+            --warning-glow: rgba(245, 158, 11, 0.35);
+            --success: #10B981;
+            --purple: #8B5CF6;
+            --cyan: #06B6D4;
+            --text-main: #F8FAFC;
+            --text-muted: #CBD5E1;
+            --font-main: 'Times New Roman', Times, serif;
+            --font-mono: 'Times New Roman', Times, serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Times New Roman', Times, serif !important;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Times New Roman', Times, serif !important;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(239, 68, 68, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 60%);
+            background-attachment: fixed;
+            line-height: 1.45;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-glass);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        /* Encabezado Principal */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(7, 11, 20, 0.92);
+            backdrop-filter: blur(18px);
+            border-bottom: 1px solid var(--border-glass);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .brand {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-title h1 {
+            font-size: 1.55rem;
+            font-weight: 700;
+            color: #FFFFFF;
+            letter-spacing: 0.3px;
+        }
+
+        .brand-title p {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .badge-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            color: #34D399;
+            padding: 0.45rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .btn-action {
+            background: linear-gradient(135deg, var(--primary), #1D4ED8);
+            color: white;
+            text-decoration: none;
+            padding: 0.55rem 1.1rem;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px var(--primary-glow);
+            transition: all 0.25s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-action:hover {
+            transform: translateY(-1px);
+            background: linear-gradient(135deg, #60A5FA, #2563EB);
+        }
+
+        .btn-action.secondary {
+            background: rgba(30, 41, 59, 0.9);
+            box-shadow: none;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-action.secondary:hover {
+            background: rgba(51, 65, 85, 0.95);
+            border-color: var(--primary);
+        }
+
+        /* Contenedor Principal */
+        .main-container {
+            padding: 1.8rem 2rem;
+            max-width: 1720px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.8rem;
+        }
+
+        /* Barra de Filtros Interactivos */
+        .filter-panel {
+            background: var(--surface-card);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            border-radius: 14px;
+            padding: 1.1rem 1.6rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.2rem;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-label {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-select {
+            background: rgba(15, 23, 42, 0.95);
+            color: var(--text-main);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 0.5rem 2rem 0.5rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.65rem center;
+            background-size: 13px;
+        }
+
+        .filter-select:hover, .filter-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .search-input {
+            background: rgba(15, 23, 42, 0.95);
+            color: var(--text-main);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 0.5rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            width: 240px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+            width: 280px;
+        }
+
+        .btn-reset {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-main);
+            padding: 0.5rem 1.1rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-reset:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: var(--primary);
+        }
+
+        /* Tarjetas KPI Principales (Sin iconos) */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.4rem;
+        }
+
+        .kpi-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 1.4rem 1.6rem;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px var(--primary-glow);
+        }
+
+        .kpi-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: var(--primary);
+        }
+
+        .kpi-card.warn::after { background: var(--warning); }
+        .kpi-card.danger::after { background: var(--danger); }
+        .kpi-card.purple::after { background: var(--purple); }
+
+        .kpi-card.warn:hover { box-shadow: 0 10px 30px var(--warning-glow); }
+        .kpi-card.danger:hover { box-shadow: 0 10px 30px var(--danger-glow); }
+        .kpi-card.purple:hover { box-shadow: 0 10px 30px rgba(139, 92, 246, 0.35); }
+
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .kpi-title {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+        }
+
+        .kpi-value {
+            font-size: 2.65rem;
+            font-weight: 700;
+            margin-bottom: 0.35rem;
+            color: #FFFFFF;
+        }
+
+        .kpi-card.warn .kpi-value { color: #FCD34D; }
+        .kpi-card.danger .kpi-value { color: #FCA5A5; }
+        .kpi-card.purple .kpi-value { color: #C4B5FD; }
+
+        .kpi-sub {
+            font-size: 0.92rem;
+            color: var(--text-muted);
+        }
+
+        /* Sección Visualización: Mapa y Gráfico Horario */
+        .viz-row {
+            display: grid;
+            grid-template-columns: 1.35fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1200px) {
+            .viz-row { grid-template-columns: 1fr; }
+        }
+
+        .viz-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 1.4rem 1.6rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+        }
+
+        .viz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+            padding-bottom: 0.8rem;
+        }
+
+        .viz-title h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #FFFFFF;
+        }
+
+        .viz-title p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+        }
+
+        /* Controles del Mapa Base y Capas */
+        .map-controls-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.7rem;
+            margin-bottom: 0.85rem;
+            background: rgba(15, 23, 42, 0.75);
+            padding: 0.55rem 0.9rem;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .map-control-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.88rem;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+
+        .map-control-item input[type="checkbox"] {
+            accent-color: var(--primary);
+            cursor: pointer;
+            width: 14px;
+            height: 14px;
+        }
+
+        .map-legend {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+            margin-left: auto;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            border: 1px solid #FFFFFF;
+        }
+
+        #map {
+            height: 490px;
+            width: 100%;
+            border-radius: 12px;
+            z-index: 1;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: #1E293B;
+        }
+
+        /* Popups de Leaflet */
+        .leaflet-popup-content-wrapper {
+            background: rgba(15, 23, 42, 0.96);
+            color: #F8FAFC;
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+            font-family: 'Times New Roman', Times, serif !important;
+        }
+
+        .leaflet-popup-tip {
+            background: rgba(15, 23, 42, 0.96);
+        }
+
+        .popup-header {
+            font-weight: 700;
+            font-size: 1.02rem;
+            margin-bottom: 0.4rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            padding-bottom: 0.35rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .popup-badges {
+            display: flex;
+            gap: 0.4rem;
+            margin-bottom: 0.55rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            font-size: 0.8rem;
+            padding: 0.18rem 0.55rem;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+
+        .badge.fatal { background: rgba(239, 68, 68, 0.22); color: #FCA5A5; border: 1px solid var(--danger); }
+        .badge.injury { background: rgba(245, 158, 11, 0.22); color: #FDE047; border: 1px solid var(--warning); }
+        .badge.damage { background: rgba(59, 130, 246, 0.22); color: #93C5FD; border: 1px solid var(--primary); }
+
+        .popup-body {
+            font-size: 0.9rem;
+            line-height: 1.45;
+            color: #E2E8F0;
+        }
+
+        .popup-time {
+            font-size: 0.85rem;
+            color: #94A3B8;
+            margin-top: 0.45rem;
+            display: block;
+        }
+
+        /* Contenedores de Gráficos */
+        .chart-container {
+            position: relative;
+            flex-grow: 1;
+            min-height: 290px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .charts-row-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 1.5rem;
+        }
+
+        /* ==========================================================================
+           PANEL DE ANÁLISIS ESTADÍSTICO AVANZADO
+           ========================================================================== */
+        .stat-panel-wrapper {
+            background: linear-gradient(180deg, rgba(20, 30, 52, 0.95) 0%, rgba(12, 19, 36, 0.96) 100%);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 18px;
+            padding: 1.8rem;
+            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+            display: flex;
+            flex-direction: column;
+            gap: 1.6rem;
+        }
+
+        .stat-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            padding-bottom: 1rem;
+        }
+
+        .stat-panel-header h2 {
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: #FFFFFF;
+            letter-spacing: 0.3px;
+        }
+
+        .stat-panel-header p {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .stat-badge-sample {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            color: #93C5FD;
+            padding: 0.45rem 1rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
+        /* Grid de 8 Métricas Estadísticas Descriptivas e Inferenciales */
+        .stat-metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.1rem;
+        }
+
+        .stat-metric-box {
+            background: var(--surface-subcard);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 3px solid var(--primary);
+            border-radius: 10px;
+            padding: 1rem 1.15rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .stat-metric-box.accent-warn { border-left-color: var(--warning); }
+        .stat-metric-box.accent-danger { border-left-color: var(--danger); }
+        .stat-metric-box.accent-purple { border-left-color: var(--purple); }
+        .stat-metric-box.accent-success { border-left-color: var(--success); }
+        .stat-metric-box.accent-cyan { border-left-color: var(--cyan); }
+
+        .stat-metric-label {
+            font-size: 0.84rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .stat-metric-val {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: #FFFFFF;
+        }
+
+        .stat-metric-desc {
+            font-size: 0.85rem;
+            color: #94A3B8;
+        }
+
+        /* Filas de gráficos dentro del Panel Estadístico */
+        .stat-charts-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+            gap: 1.4rem;
+        }
+
+        @media (max-width: 1100px) {
+            .stat-charts-grid-2 { grid-template-columns: 1fr; }
+        }
+
+        .stat-subcard {
+            background: var(--surface-subcard);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 14px;
+            padding: 1.3rem 1.4rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-subcard h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #FFFFFF;
+            margin-bottom: 0.2rem;
+        }
+
+        .stat-subcard p.sub-desc {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding-bottom: 0.6rem;
+        }
+
+        /* Matriz de Contingencia (Día x Franja) */
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.92rem;
+            text-align: center;
+        }
+
+        .matrix-table th, .matrix-table td {
+            padding: 0.65rem 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .matrix-table th {
+            background: rgba(15, 23, 42, 0.95);
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+
+        .matrix-table td.day-col {
+            text-align: left;
+            font-weight: 700;
+            background: rgba(15, 23, 42, 0.6);
+            color: #F8FAFC;
+            padding-left: 0.8rem;
+        }
+
+        .matrix-table tr.total-row td {
+            font-weight: 700;
+            background: rgba(30, 41, 59, 0.85);
+            color: #93C5FD;
+        }
+
+        /* Tabla Interactiva de Reportes y Tabla Resumen Mensual */
+        .table-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 1.5rem;
+            overflow: hidden;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 500px;
+            margin-top: 0.8rem;
+        }
+
+        table.std-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        table.std-table th {
+            background: rgba(15, 23, 42, 0.95);
+            padding: 0.9rem 1rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.82rem;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.12);
+        }
+
+        table.std-table td {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            color: #E2E8F0;
+            vertical-align: middle;
+        }
+
+        table.std-table tr:hover td {
+            background: rgba(59, 130, 246, 0.09);
+        }
+
+        .col-time {
+            font-size: 0.92rem;
+            color: #93C5FD;
+        }
+
+        .btn-zoom {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.45);
+            color: #93C5FD;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: 700;
+            transition: all 0.2s;
+        }
+
+        .btn-zoom:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--text-muted);
+            font-size: 0.92rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            margin-top: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Encabezado Superior -->
+    <header>
+        <div class="brand">
+            <div class="brand-title">
+                <h1>Geoportal de Análisis Estadístico y Espacial de Siniestros Viales — Riobamba</h1>
+                <p>Plataforma Independiente de Georreferenciación, Análisis Multivariado y Monitoreo de Seguridad Vial</p>
+            </div>
+        </div>
+        <div class="nav-actions">
+            <div class="badge-status">
+                <span id="sync-status-text">Base de Datos Sincronizada (Supabase SQL)</span>
+            </div>
+            <button type="button" class="btn-action secondary" onclick="exportarCSVFiltrado()">
+                Exportar CSV
+            </button>
+            <button type="button" class="btn-action secondary" onclick="exportarGeoJSONFiltrado()">
+                Exportar GeoJSON
+            </button>
+            <a href="reporte_estadistico_accidentes.pdf" target="_blank" class="btn-action">
+                Abrir Reporte Oficial en PDF
+            </a>
+        </div>
+    </header>
+
+    <!-- Contenedor Principal -->
+    <div class="main-container">
+
+        <!-- Barra de Filtros Interactivos (Sin iconos) -->
+        <div class="filter-panel">
+            <div class="filter-group">
+                <div class="filter-label">FILTRAR POR:</div>
+
+                <select id="filter-severity" class="filter-select">
+                    <option value="ALL">Gravedad: Todas</option>
+                    <option value="FATAL">Con Fallecidos</option>
+                    <option value="INJURY">Con Heridos</option>
+                    <option value="DAMAGE">Solo Daños Materiales</option>
+                </select>
+
+                <select id="filter-franja" class="filter-select">
+                    <option value="ALL">Franja: Todas</option>
+                    <option value="Madrugada">Madrugada (00h-06h)</option>
+                    <option value="Mañana">Mañana (06h-12h)</option>
+                    <option value="Tarde">Tarde (12h-18h)</option>
+                    <option value="Noche">Noche (18h-24h)</option>
+                </select>
+
+                <select id="filter-dia" class="filter-select">
+                    <option value="ALL">Día: Todos los días</option>
+                    <option value="Lunes">Lunes</option>
+                    <option value="Martes">Martes</option>
+                    <option value="Miércoles">Miércoles</option>
+                    <option value="Jueves">Jueves</option>
+                    <option value="Viernes">Viernes</option>
+                    <option value="Sábado">Sábado</option>
+                    <option value="Domingo">Domingo</option>
+                </select>
+
+                <select id="filter-mes" class="filter-select">
+                    <option value="ALL">Mes: Todos los meses</option>
+                    <option value="Enero">Enero</option>
+                    <option value="Febrero">Febrero</option>
+                    <option value="Marzo">Marzo</option>
+                    <option value="Abril">Abril</option>
+                    <option value="Mayo">Mayo</option>
+                    <option value="Junio">Junio</option>
+                    <option value="Julio">Julio</option>
+                    <option value="Agosto">Agosto</option>
+                    <option value="Septiembre">Septiembre</option>
+                    <option value="Octubre">Octubre</option>
+                    <option value="Noviembre">Noviembre</option>
+                    <option value="Diciembre">Diciembre</option>
+                </select>
+
+                <input type="text" id="search-input" class="search-input" placeholder="Buscar por descripción o actor...">
+            </div>
+
+            <button id="btn-reset" class="btn-reset">Restablecer Filtros</button>
+        </div>
+
+        <!-- Tarjetas KPI Principales (Sin iconos) -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-header">
+                    <span class="kpi-title">TOTAL SINIESTROS</span>
+                </div>
+                <div id="kpi-siniestros" class="kpi-value">0</div>
+                <div class="kpi-sub">
+                    <span id="kpi-siniestros-sub">100.0% del histórico global</span>
+                </div>
+            </div>
+
+            <div class="kpi-card warn">
+                <div class="kpi-header">
+                    <span class="kpi-title">VÍCTIMAS LESIONADAS (HERIDOS)</span>
+                </div>
+                <div id="kpi-heridos" class="kpi-value">0</div>
+                <div class="kpi-sub">
+                    <span id="kpi-heridos-sub">Promedio: 0.00 heridos / sin.</span>
+                </div>
+            </div>
+
+            <div class="kpi-card danger">
+                <div class="kpi-header">
+                    <span class="kpi-title">VÍCTIMAS FATALES (FALLECIDOS)</span>
+                </div>
+                <div id="kpi-fallecidos" class="kpi-value">0</div>
+                <div class="kpi-sub">
+                    <span id="kpi-fallecidos-sub">Tasa Letalidad: 0.0%</span>
+                </div>
+            </div>
+
+            <div class="kpi-card purple">
+                <div class="kpi-header">
+                    <span class="kpi-title">VENTANA DE RIESGO MÁXIMO</span>
+                </div>
+                <div id="kpi-hora-pico" class="kpi-value">00:00</div>
+                <div class="kpi-sub">
+                    <span id="kpi-hora-sub">Pico máximo de incidentes registrados</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección de Visualización Espacial y Distribución Horaria -->
+        <div class="viz-row">
+            <!-- Mapa GIS Interactivo -->
+            <div class="viz-card">
+                <div class="viz-header">
+                    <div class="viz-title">
+                        <h2>Mapa Interactivo de Siniestralidad y Puntos Críticos</h2>
+                        <p>Georreferenciación exacta de siniestros coloreados por nivel de gravedad (seleccione cada punto para inspeccionar detalles)</p>
+                    </div>
+                    <div>
+                        <select id="basemap-select" class="filter-select" aria-label="Seleccionar Mapa Base">
+                            <option value="esri_street">Mapa Base: Esri Vial Estándar</option>
+                            <option value="osm">Mapa Base: OpenStreetMap</option>
+                            <option value="esri_dark">Mapa Base: Esri Gris Oscuro</option>
+                            <option value="esri_sat">Mapa Base: Esri Satelital</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="map-controls-bar">
+                    <label class="map-control-item">
+                        <input type="checkbox" id="toggle-markers" checked>
+                        <span>Puntos de Siniestros</span>
+                    </label>
+                    <label class="map-control-item">
+                        <input type="checkbox" id="toggle-heatmap">
+                        <span>Mapa de Calor (Densidad)</span>
+                    </label>
+                    <label class="map-control-item">
+                        <input type="checkbox" id="toggle-perimetro" checked>
+                        <span>Perímetro Urbano</span>
+                    </label>
+                    <label class="map-control-item">
+                        <input type="checkbox" id="toggle-zonas">
+                        <span>Zonas Críticas (Radio 300 m)</span>
+                    </label>
+
+                    <div class="map-legend">
+                        <span class="legend-item"><span class="legend-dot" style="background:#3B82F6;"></span> Solo Daños</span>
+                        <span class="legend-item"><span class="legend-dot" style="background:#F59E0B;"></span> Con Heridos</span>
+                        <span class="legend-item"><span class="legend-dot" style="background:#EF4444;"></span> Con Fallecidos</span>
+                    </div>
+                </div>
+
+                <div id="map"></div>
+            </div>
+
+            <!-- Gráfico de Distribución Horaria -->
+            <div class="viz-card">
+                <div class="viz-header">
+                    <div class="viz-title">
+                        <h2>Distribución Horaria de Siniestros (00h - 23h)</h2>
+                        <p>Frecuencia acumulada de siniestros y víctimas según la hora de registro</p>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chartHora"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Segunda Fila: Gráficos Temporales y Tipológicos -->
+        <div class="charts-row-3">
+            <div class="viz-card">
+                <div class="viz-header">
+                    <div class="viz-title">
+                        <h2>Incidencia por Día de la Semana</h2>
+                        <p>Comparativa de siniestralidad total y víctimas acumuladas (Lunes a Domingo)</p>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chartDias"></canvas>
+                </div>
+            </div>
+
+            <div class="viz-card">
+                <div class="viz-header">
+                    <div class="viz-title">
+                        <h2>Clasificación por Nivel de Gravedad</h2>
+                        <p>Proporción entre eventos con solo daños materiales, heridos y fallecidos</p>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chartSeveridad"></canvas>
+                </div>
+            </div>
+
+            <div class="viz-card">
+                <div class="viz-header">
+                    <div class="viz-title">
+                        <h2>Actores Viales y Factores Recurrentes</h2>
+                        <p>Incidencia detectada por tipo de vehículo, atropellamientos y causas asociadas</p>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chartFactores"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================================
+             NUEVO PANEL DE ANÁLISIS ESTADÍSTICO MULTIVARIADO Y MÉTRICAS
+             ======================================================================== -->
+        <section class="stat-panel-wrapper" id="panel-analisis-estadistico">
+            <div class="stat-panel-header">
+                <div>
+                    <h2>Panel de Análisis Estadístico Multivariado y Métricas de Riesgo Vial</h2>
+                    <p>Evaluación cuantitativa de tendencia central, dispersión, correlación lineal, índices de lesividad y distribución espacio-temporal</p>
+                </div>
+                <div class="stat-badge-sample" id="stat-sample-badge">
+                    Muestra Activa: N = 0 siniestros
+                </div>
+            </div>
+
+            <!-- 8 Tarjetas de Métricas Estadísticas Avanzadas -->
+            <div class="stat-metrics-grid">
+                <div class="stat-metric-box">
+                    <span class="stat-metric-label">MEDIA DIARIA Y MENSUAL</span>
+                    <div class="stat-metric-val" id="stat-media-diaria">0.00 / día</div>
+                    <span class="stat-metric-desc" id="stat-media-mensual">Promedio mensual: 0.00 siniestros/mes</span>
+                </div>
+
+                <div class="stat-metric-box accent-cyan">
+                    <span class="stat-metric-label">MEDIANA Y RANGO INTERCUARTÍLICO</span>
+                    <div class="stat-metric-val" id="stat-mediana-iqr">Me: 0.0 | IQR: 0.0</div>
+                    <span class="stat-metric-desc" id="stat-cuartiles-desc">Cuartiles diarios: Q1 = 0.0, Q3 = 0.0</span>
+                </div>
+
+                <div class="stat-metric-box accent-purple">
+                    <span class="stat-metric-label">DESVIACIÓN ESTÁNDAR Y VARIANZA</span>
+                    <div class="stat-metric-val" id="stat-std-var">σ = 0.00</div>
+                    <span class="stat-metric-desc" id="stat-varianza-desc">Varianza horaria (σ²): 0.00</span>
+                </div>
+
+                <div class="stat-metric-box accent-success">
+                    <span class="stat-metric-label">COEFICIENTE DE VARIACIÓN (CV)</span>
+                    <div class="stat-metric-val" id="stat-cv-val">0.0%</div>
+                    <span class="stat-metric-desc" id="stat-cv-desc">Dispersión relativa en distribución horaria</span>
+                </div>
+
+                <div class="stat-metric-box accent-warn">
+                    <span class="stat-metric-label">ÍNDICE DE MORBILIDAD (CADA 100 SIN.)</span>
+                    <div class="stat-metric-val" id="stat-morbilidad">0.0</div>
+                    <span class="stat-metric-desc" id="stat-prob-victima">Eventos con víctimas: 0.0% del total</span>
+                </div>
+
+                <div class="stat-metric-box accent-danger">
+                    <span class="stat-metric-label">ÍNDICE DE LETALIDAD (CADA 100 SIN.)</span>
+                    <div class="stat-metric-val" id="stat-letalidad">0.00</div>
+                    <span class="stat-metric-desc" id="stat-letalidad-desc">Eventos fatales registrados: 0</span>
+                </div>
+
+                <div class="stat-metric-box">
+                    <span class="stat-metric-label">ÍNDICE DE SEVERIDAD PONDERADO (ISP)</span>
+                    <div class="stat-metric-val" id="stat-isp-val">1.00</div>
+                    <span class="stat-metric-desc">Fórmula: (1·Daños + 3·Heridos + 10·Fatal) / N</span>
+                </div>
+
+                <div class="stat-metric-box accent-purple">
+                    <span class="stat-metric-label">CORRELACIÓN HORARIA (PEARSON r)</span>
+                    <div class="stat-metric-val" id="stat-pearson-val">r = 0.000</div>
+                    <span class="stat-metric-desc" id="stat-pearson-desc">Asociación frecuencia horaria vs. víctimas</span>
+                </div>
+            </div>
+
+            <!-- Fila 1 de Gráficos Estadísticos: Serie Mensual con Regresión Lineal + Severidad por Franja Horaria -->
+            <div class="stat-charts-grid-2">
+                <div class="stat-subcard">
+                    <h3>Evolución Mensual y Recta de Regresión Lineal (Tendencia 2026)</h3>
+                    <p class="sub-desc">Serie histórica mensual de siniestros, volumen de víctimas y ajuste por mínimos cuadrados ordinarios (y = mx + b)</p>
+                    <div class="chart-container" style="min-height: 310px;">
+                        <canvas id="chartEvolucionMensual"></canvas>
+                    </div>
+                </div>
+
+                <div class="stat-subcard">
+                    <h3>Distribución Conjunta: Franja Horaria vs. Nivel de Severidad</h3>
+                    <p class="sub-desc">Desglose comparativo de siniestros por gravedad e índice de morbilidad en cada bloque horario del día</p>
+                    <div class="chart-container" style="min-height: 310px;">
+                        <canvas id="chartFranjaSeveridad"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fila 2 de Gráficos Estadísticos: Diagrama de Pareto 80/20 + Concentración en Zonas Críticas -->
+            <div class="stat-charts-grid-2">
+                <div class="stat-subcard">
+                    <h3>Diagrama de Pareto (Curva 80/20) de Factores y Actores Viales</h3>
+                    <p class="sub-desc">Frecuencia absoluta ordenada y porcentaje acumulado para priorización de políticas de control vial</p>
+                    <div class="chart-container" style="min-height: 310px;">
+                        <canvas id="chartParetoFactores"></canvas>
+                    </div>
+                </div>
+
+                <div class="stat-subcard">
+                    <h3>Concentración Espacial por Zonas Críticas (Radio Haversine 300 m)</h3>
+                    <p class="sub-desc">Siniestros y víctimas localizados dentro del radio de influencia de los 5 nodos críticos urbanos de Riobamba</p>
+                    <div class="chart-container" style="min-height: 310px;">
+                        <canvas id="chartZonasCriticas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fila 3 del Panel Estadístico: Matriz Cruzada (Día x Franja) y Tabla Resumen Mensual -->
+            <div class="stat-charts-grid-2">
+                <div class="stat-subcard">
+                    <h3>Matriz de Contingencia Espacio-Temporal (Día de la Semana × Franja Horaria)</h3>
+                    <p class="sub-desc">Mapa de calor tabular con frecuencias absolutas, totales marginales y concentración porcentual de riesgo</p>
+                    <div style="overflow-x: auto; margin-top: 0.4rem;">
+                        <table class="matrix-table" id="contingency-matrix">
+                            <thead>
+                                <tr>
+                                    <th>Día / Franja</th>
+                                    <th>Madrugada (00-06h)</th>
+                                    <th>Mañana (06-12h)</th>
+                                    <th>Tarde (12-18h)</th>
+                                    <th>Noche (18-24h)</th>
+                                    <th>Total Día</th>
+                                    <th>% Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="contingency-body">
+                                <!-- Generado dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="stat-subcard">
+                    <h3>Síntesis Estadística Mensual e Indicadores de Lesividad</h3>
+                    <p class="sub-desc">Desglose cuantitativo por mes con tasas de morbilidad, letalidad e Índice de Severidad Ponderado (ISP)</p>
+                    <div style="overflow-x: auto; max-height: 360px; margin-top: 0.4rem;">
+                        <table class="std-table" id="monthly-stats-table">
+                            <thead>
+                                <tr>
+                                    <th>Mes</th>
+                                    <th>Siniestros</th>
+                                    <th>% Total</th>
+                                    <th>Heridos</th>
+                                    <th>Fallecidos</th>
+                                    <th>Morbilidad (c/100)</th>
+                                    <th>ISP</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monthly-stats-body">
+                                <!-- Generado dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tabla de Datos Interactiva -->
+        <div class="table-card">
+            <div class="viz-header">
+                <div class="viz-title">
+                    <h2>Registro Detallado de Siniestros Viales</h2>
+                    <p>Listado completo de reportes correspondientes a los filtros activos con acceso directo a su ubicación en el mapa</p>
+                </div>
+                <span id="table-counter" style="color: var(--primary); font-weight: 700; font-size: 1.05rem;">0 Registros</span>
+            </div>
+            <div class="table-container">
+                <table class="std-table" id="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Fecha y Hora</th>
+                            <th>Día / Franja</th>
+                            <th>Tipo de Reporte</th>
+                            <th>Descripción del Hecho</th>
+                            <th>Severidad</th>
+                            <th>Víctimas</th>
+                            <th>Coordenadas</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <!-- Llenado dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Pie de Página -->
+    <footer>
+        <p>Geoportal de Análisis Estadístico y Espacial de Siniestros de Tránsito — Ciudad de Riobamba</p>
+        <p style="margin-top: 0.35rem; font-size: 0.85rem;">Repositorio Analítico Independiente sincronizado con PostgreSQL / Supabase</p>
+    </footer>
+
+    <!-- Librerías Externas (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <!-- Carga de datos locales actualizados -->
+    <script src="datos_reportes.js"></script>
+
+    <!-- Lógica Principal del Geoportal Analítico -->
+    <script>
+        const SUPABASE_URL = 'https://pnaobmyaugbccfwwhyob.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBuYW9ibXlhdWdiY2Nmd3doeW9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMzQwMzcsImV4cCI6MjA4MzkxMDAzN30.-TwJWOKZWXNDq2u789-dRcX--yA4fWjGSgHc-Zr-ny4';
+
+        const ZONAS_CRITICAS = (typeof ZONAS_CRITICAS_REF !== 'undefined') ? ZONAS_CRITICAS_REF : [
+            { nombre: 'Sector Hospital San Juan', lat: -1.662198, lng: -78.658870, radioMetros: 300 },
+            { nombre: 'Sector Redondel del Comil', lat: -1.665350, lng: -78.649496, radioMetros: 300 },
+            { nombre: 'Sector Prefectura de Chimborazo', lat: -1.668763, lng: -78.652333, radioMetros: 300 },
+            { nombre: 'Sector Plaza Alfaro', lat: -1.671071, lng: -78.654227, radioMetros: 300 },
+            { nombre: 'Sector Mercado San Alfonso', lat: -1.671138, lng: -78.647331, radioMetros: 300 }
+        ];
+
+        let datasetGlobal = (typeof DATOS_REPORTES !== 'undefined') ? DATOS_REPORTES : [];
+        let datasetFiltradoActual = [...datasetGlobal];
+
+        let map;
+        let baseLayers = {};
+        let activeBaseLayer = null;
+        let markersLayer;
+        let heatLayer = null;
+        let perimetroLayer;
+        let zonasCriticasLayer;
+        let charts = {};
+
+        const COLOR_FATAL = '#EF4444';
+        const COLOR_INJURY = '#F59E0B';
+        const COLOR_DAMAGE = '#3B82F6';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            initCharts();
+            setupEventListeners();
+            updateDashboard(datasetGlobal);
+            sincronizarConSupabaseEnVivo();
+        });
+
+        // Función Haversine en metros
+        function haversineMetros(lat1, lon1, lat2, lon2) {
+            const R = 6371000;
+            const toRad = deg => (deg * Math.PI) / 180;
+            const dLat = toRad(lat2 - lat1);
+            const dLon = toRad(lon2 - lon1);
+            const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+
+        // Normalizador de registros crudos desde Supabase
+        function normalizarRegistrosSupabase(reportesRaw) {
+            const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+            const mesesNombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+            return reportesRaw.map(r => {
+                const fallecidos = (r.Fallecidos === 'NULL' || r.Fallecidos == null) ? 0 : (parseInt(r.Fallecidos, 10) || 0);
+                const heridos = (r.Heridos === 'NULL' || r.Heridos == null) ? 0 : (parseInt(r.Heridos, 10) || 0);
+                const horaStr = r.hora ? r.hora.toString().split('.')[0] : "12:00:00";
+                const partsHora = horaStr.split(':').map(Number);
+                const horaNum = (!isNaN(partsHora[0]) && partsHora[0] >= 0 && partsHora[0] <= 23) ? partsHora[0] : 12;
+
+                let franja = "Tarde";
+                if (horaNum >= 0 && horaNum < 6) franja = "Madrugada";
+                else if (horaNum >= 6 && horaNum < 12) franja = "Mañana";
+                else if (horaNum >= 12 && horaNum < 18) franja = "Tarde";
+                else franja = "Noche";
+
+                let fecha = r.date;
+                if (!fecha && r.fecha_reporte) fecha = r.fecha_reporte.toString().slice(0, 10);
+                if (!fecha) fecha = "2026-01-01";
+
+                const dateObj = new Date(fecha + "T00:00:00");
+                const diaSemana = !isNaN(dateObj.getDay()) ? diasSemana[dateObj.getDay()] : "Lunes";
+                const mesIdx = !isNaN(dateObj.getMonth()) ? dateObj.getMonth() : 0;
+                const mes = mesesNombres[mesIdx] || "Enero";
+
+                let severidad = "Solo Daños Materiales";
+                if (fallecidos > 0) severidad = "Con Fallecidos";
+                else if (heridos > 0) severidad = "Con Heridos";
+
+                let lat = parseFloat(r.latitud);
+                let lng = parseFloat(r.longitud);
+                if ((isNaN(lat) || isNaN(lng)) && r.geom && r.geom.coordinates) {
+                    lng = parseFloat(r.geom.coordinates[0]);
+                    lat = parseFloat(r.geom.coordinates[1]);
+                }
+                if (isNaN(lat)) lat = -1.666;
+                if (isNaN(lng)) lng = -78.655;
+
+                const desc = (r.descripcion || "").toLowerCase();
+                const inv_moto = desc.includes('moto') || desc.includes('motocicl');
+                const inv_taxi = desc.includes('taxy') || desc.includes('taxi');
+                const inv_bus = desc.includes('bus') || desc.includes('colectivo');
+                const inv_peaton = desc.includes('peaton') || desc.includes('peatón') || desc.includes('atropell') || desc.includes('ciclist');
+                const inv_alcohol = desc.includes('ebrio') || desc.includes('etílico') || desc.includes('alcohol') || desc.includes('licor') || desc.includes('embriag');
+                const inv_camioneta = desc.includes('camioneta') || desc.includes('camión') || desc.includes('camion') || desc.includes('furgoneta');
+                const inv_volcamiento = desc.includes('volca') || desc.includes('pérdida de pista') || desc.includes('perdida de pista') || desc.includes('estrell');
+
+                let zonaCercana = "Resto del Perímetro Urbano";
+                let minDist = Infinity;
+                ZONAS_CRITICAS.forEach(z => {
+                    const d = haversineMetros(lat, lng, z.lat, z.lng);
+                    if (d <= z.radioMetros && d < minDist) {
+                        minDist = d;
+                        zonaCercana = z.nombre;
+                    }
+                });
+
+                return {
+                    id: r.id,
+                    lat,
+                    lng,
+                    tipo_reporte: r.tipo_reporte || "Colisión Vehicular",
+                    descripcion: (r.descripcion || "Sin descripción").trim(),
+                    hora: horaStr,
+                    horaNum,
+                    franja,
+                    fecha,
+                    anioMes: fecha.slice(0, 7),
+                    diaSemana,
+                    mes,
+                    mesIdx,
+                    fallecidos,
+                    heridos,
+                    severidad,
+                    zonaCercana,
+                    factores: {
+                        moto: inv_moto,
+                        taxi: inv_taxi,
+                        bus: inv_bus,
+                        peaton: inv_peaton,
+                        alcohol: inv_alcohol,
+                        camioneta: inv_camioneta,
+                        volcamiento: inv_volcamiento
+                    }
+                };
+            }).sort((a, b) => (b.fecha + b.hora).localeCompare(a.fecha + a.hora));
+        }
+
+        // Sincronización automática en vivo con Supabase
+        async function sincronizarConSupabaseEnVivo() {
+            const statusEl = document.getElementById('sync-status-text');
+            try {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/reportes?select=*`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (!res.ok) throw new Error('Respuesta no válida');
+                const rawData = await res.json();
+                if (Array.isArray(rawData) && rawData.length > 0) {
+                    datasetGlobal = normalizarRegistrosSupabase(rawData);
+                    if (statusEl) {
+                        statusEl.textContent = `Supabase en Vivo (${datasetGlobal.length} registros sincronizados)`;
+                    }
+                    aplicarFiltrosActuales();
+                }
+            } catch (e) {
+                if (statusEl) {
+                    statusEl.textContent = `Modo Local Activo (${datasetGlobal.length} registros cargados)`;
+                }
+            }
+        }
+
+        // 1. Inicialización del Mapa GIS sin problemas de API Key
+        function initMap() {
+            map = L.map('map', { zoomControl: false }).setView([-1.6650, -78.6540], 13);
+            L.control.zoom({ position: 'topright' }).addTo(map);
+
+            // Capas Base Libres de API Key (Esri ArcGIS & OpenStreetMap)
+            baseLayers.esri_street = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap',
+                maxZoom: 19
+            });
+
+            baseLayers.osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            });
+
+            const darkBase = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+                maxZoom: 16
+            });
+            const darkRef = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 16
+            });
+            baseLayers.esri_dark = L.layerGroup([darkBase, darkRef]);
+
+            baseLayers.esri_sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
+                maxZoom: 19
+            });
+
+            // Activar Esri Vial Estándar por defecto (igual que en V2GSVR-main)
+            activeBaseLayer = baseLayers.esri_street;
+            activeBaseLayer.addTo(map);
+
+            // Capa Perímetro Urbano
+            perimetroLayer = L.layerGroup().addTo(map);
+            if (typeof DATOS_PERIMETRO !== 'undefined' && Array.isArray(DATOS_PERIMETRO)) {
+                DATOS_PERIMETRO.forEach(geom => {
+                    L.geoJSON(geom, {
+                        style: {
+                            color: '#1D4ED8',
+                            weight: 2.2,
+                            fillColor: '#3B82F6',
+                            fillOpacity: 0.04,
+                            dashArray: '5, 5'
+                        }
+                    }).addTo(perimetroLayer);
+                });
+            }
+
+            // Capa Zonas Críticas
+            zonasCriticasLayer = L.layerGroup();
+            ZONAS_CRITICAS.forEach(z => {
+                L.circle([z.lat, z.lng], {
+                    radius: z.radioMetros,
+                    color: '#DC2626',
+                    weight: 1.8,
+                    fillColor: '#EF4444',
+                    fillOpacity: 0.18
+                }).bindPopup(`
+                    <div class="popup-header">
+                        <span>Zona Crítica Monitoreada</span>
+                    </div>
+                    <div class="popup-body">
+                        <strong>${z.nombre}</strong><br>
+                        <span>Radio de análisis espacial: ${z.radioMetros} metros</span><br>
+                        <span class="popup-time">Centroide: ${z.lat.toFixed(5)}, ${z.lng.toFixed(5)}</span>
+                    </div>
+                `).addTo(zonasCriticasLayer);
+            });
+
+            // Capa de Marcadores
+            markersLayer = L.layerGroup().addTo(map);
+
+            // Eventos de cambio de mapa base y capas
+            document.getElementById('basemap-select').addEventListener('change', function(e) {
+                const selected = e.target.value;
+                if (activeBaseLayer) map.removeLayer(activeBaseLayer);
+                activeBaseLayer = baseLayers[selected] || baseLayers.esri_street;
+                activeBaseLayer.addTo(map);
+            });
+
+            document.getElementById('toggle-markers').addEventListener('change', function(e) {
+                e.target.checked ? map.addLayer(markersLayer) : map.removeLayer(markersLayer);
+            });
+
+            document.getElementById('toggle-heatmap').addEventListener('change', function(e) {
+                if (!heatLayer) return;
+                e.target.checked ? map.addLayer(heatLayer) : map.removeLayer(heatLayer);
+            });
+
+            document.getElementById('toggle-perimetro').addEventListener('change', function(e) {
+                e.target.checked ? map.addLayer(perimetroLayer) : map.removeLayer(perimetroLayer);
+            });
+
+            document.getElementById('toggle-zonas').addEventListener('change', function(e) {
+                e.target.checked ? map.addLayer(zonasCriticasLayer) : map.removeLayer(zonasCriticasLayer);
+            });
+        }
+
+        // 2. Renderizar Marcadores y Mapa de Calor
+        function renderMapMarkers(data) {
+            markersLayer.clearLayers();
+            if (heatLayer) {
+                map.removeLayer(heatLayer);
+                heatLayer = null;
+            }
+            if (data.length === 0) return;
+
+            let bounds = [];
+            let heatPoints = [];
+
+            data.forEach(r => {
+                if (isNaN(r.lat) || isNaN(r.lng)) return;
+                bounds.push([r.lat, r.lng]);
+
+                let color = COLOR_DAMAGE;
+                let badgeClass = "damage";
+                let textBadge = "Solo Daños Materiales";
+                let radius = 6.5;
+                let pesoHeat = 1.0;
+
+                if (r.fallecidos > 0) {
+                    color = COLOR_FATAL;
+                    badgeClass = "fatal";
+                    textBadge = `${r.fallecidos} Fallecido(s)`;
+                    radius = 9.5;
+                    pesoHeat = 3.0;
+                } else if (r.heridos > 0) {
+                    color = COLOR_INJURY;
+                    badgeClass = "injury";
+                    textBadge = `${r.heridos} Herido(s)`;
+                    radius = 8;
+                    pesoHeat = 2.0;
+                }
+
+                heatPoints.push([r.lat, r.lng, pesoHeat]);
+
+                const marker = L.circleMarker([r.lat, r.lng], {
+                    radius: radius,
+                    fillColor: color,
+                    color: '#0F172A',
+                    weight: 1.5,
+                    opacity: 0.95,
+                    fillOpacity: 0.88
+                });
+
+                const popupHtml = `
+                    <div class="popup-header">
+                        <span>Reporte #${r.id}</span>
+                        <span style="color: ${color}; font-size: 0.85rem;">${r.severidad}</span>
+                    </div>
+                    <div class="popup-badges">
+                        <span class="badge ${badgeClass}">${textBadge}</span>
+                        <span class="badge" style="background: rgba(255,255,255,0.12); color: #CBD5E1;">Franja: ${r.franja}</span>
+                    </div>
+                    <div class="popup-body">
+                        <strong>${r.tipo_reporte}</strong><br>
+                        <p style="margin-top:0.3rem;">"${r.descripcion}"</p>
+                        <span class="popup-time">Fecha: ${r.fecha} (${r.diaSemana}) | Hora: ${r.hora}</span>
+                        <div style="margin-top: 0.35rem; font-size: 0.8rem; color: #94A3B8;">
+                            Sector: ${r.zonaCercana || 'Perímetro Urbano'}<br>
+                            Coordenadas: ${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}
+                        </div>
+                    </div>
+                `;
+
+                marker.bindPopup(popupHtml, { maxWidth: 300 });
+                markersLayer.addLayer(marker);
+            });
+
+            if (typeof L.heatLayer === 'function' && heatPoints.length > 0) {
+                heatLayer = L.heatLayer(heatPoints, {
+                    radius: 32,
+                    blur: 22,
+                    maxZoom: 16,
+                    max: 3.0,
+                    minOpacity: 0.45,
+                    gradient: { 0.25: '#3B82F6', 0.6: '#F59E0B', 1.0: '#EF4444' }
+                });
+                if (document.getElementById('toggle-heatmap').checked) {
+                    heatLayer.addTo(map);
+                }
+            }
+
+            if (bounds.length > 1 && bounds.length < datasetGlobal.length) {
+                map.fitBounds(bounds, { padding: [35, 35], maxZoom: 16 });
+            }
+        }
+
+        window.zoomToMarker = function(lat, lng) {
+            window.scrollTo({ top: document.getElementById('map').offsetTop - 120, behavior: 'smooth' });
+            map.flyTo([lat, lng], 17, { duration: 1.2 });
+        };
+
+        // 3. Inicialización de Todos los Gráficos con Fuente Times New Roman
+        function initCharts() {
+            Chart.defaults.color = '#CBD5E1';
+            Chart.defaults.font.family = "'Times New Roman', Times, serif";
+            Chart.defaults.font.size = 13;
+            Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.06)';
+
+            // Gráfico 1: Distribución Horaria (00h - 23h)
+            const ctxHora = document.getElementById('chartHora').getContext('2d');
+            charts.hora = new Chart(ctxHora, {
+                type: 'bar',
+                data: { labels: Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`), datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.06)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Gráfico 2: Días de la Semana
+            const ctxDias = document.getElementById('chartDias').getContext('2d');
+            charts.dias = new Chart(ctxDias, {
+                type: 'line',
+                data: { labels: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } },
+                    elements: { line: { tension: 0.35 }, point: { radius: 5, hoverRadius: 7 } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            // Gráfico 3: Severidad (Doughnut)
+            const ctxSev = document.getElementById('chartSeveridad').getContext('2d');
+            charts.severidad = new Chart(ctxSev, {
+                type: 'doughnut',
+                data: { labels: ['Solo Daños Materiales', 'Con Heridos', 'Con Fallecidos'], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 14, padding: 15 } } },
+                    cutout: '68%'
+                }
+            });
+
+            // Gráfico 4: Factores Recurrentes
+            const ctxFact = document.getElementById('chartFactores').getContext('2d');
+            charts.factores = new Chart(ctxFact, {
+                type: 'bar',
+                data: {
+                    labels: ['Taxis', 'Motocicletas', 'Camionetas/Carga', 'Volcamientos/Pista', 'Peatones/Ciclistas', 'Buses', 'Alcohol/Ebriedad'],
+                    datasets: []
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true } }
+                }
+            });
+
+            // Gráfico 5 (Panel Estadístico): Evolución Mensual + Regresión Lineal
+            const ctxMes = document.getElementById('chartEvolucionMensual').getContext('2d');
+            charts.evolucionMensual = new Chart(ctxMes, {
+                type: 'bar',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Frecuencia de Eventos / Víctimas' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Gráfico 6 (Panel Estadístico): Franja Horaria vs. Severidad
+            const ctxFranjaSev = document.getElementById('chartFranjaSeveridad').getContext('2d');
+            charts.franjaSeveridad = new Chart(ctxFranjaSev, {
+                type: 'bar',
+                data: { labels: ['Madrugada (00-06h)', 'Mañana (06-12h)', 'Tarde (12-18h)', 'Noche (18-24h)'], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        x: { stacked: true, grid: { display: false } },
+                        y: { stacked: true, beginAtZero: true, title: { display: true, text: 'N° de Siniestros' } }
+                    }
+                }
+            });
+
+            // Gráfico 7 (Panel Estadístico): Diagrama de Pareto (80/20)
+            const ctxPareto = document.getElementById('chartParetoFactores').getContext('2d');
+            charts.pareto = new Chart(ctxPareto, {
+                type: 'bar',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            beginAtZero: true,
+                            title: { display: true, text: 'Frecuencia Absoluta' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            min: 0,
+                            max: 100,
+                            grid: { drawOnChartArea: false },
+                            title: { display: true, text: 'Porcentaje Acumulado (%)' }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Gráfico 8 (Panel Estadístico): Zonas Críticas
+            const ctxZonas = document.getElementById('chartZonasCriticas').getContext('2d');
+            charts.zonasCriticas = new Chart(ctxZonas, {
+                type: 'bar',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Cantidad de Registros' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // Funciones auxiliares para cálculos estadísticos en vivo
+        function calcularEstadisticasArray(arr) {
+            if (!arr || arr.length === 0) return { mean: 0, median: 0, stdDev: 0, variance: 0, cv: 0, q1: 0, q3: 0, iqr: 0 };
+            const sorted = [...arr].sort((a, b) => a - b);
+            const n = sorted.length;
+            const sum = sorted.reduce((a, b) => a + b, 0);
+            const mean = sum / n;
+            const variance = sorted.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / n;
+            const stdDev = Math.sqrt(variance);
+            const cv = mean > 0 ? (stdDev / mean) * 100 : 0;
+
+            const quantile = (q) => {
+                const pos = (n - 1) * q;
+                const base = Math.floor(pos);
+                const rest = pos - base;
+                if (sorted[base + 1] !== undefined) return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+                return sorted[base];
+            };
+
+            const median = quantile(0.5);
+            const q1 = quantile(0.25);
+            const q3 = quantile(0.75);
+            const iqr = q3 - q1;
+
+            return { mean, median, stdDev, variance, cv, q1, q3, iqr };
+        }
+
+        function calcularPearson(x, y) {
+            const n = x.length;
+            if (n === 0 || n !== y.length) return 0;
+            const mx = x.reduce((a, b) => a + b, 0) / n;
+            const my = y.reduce((a, b) => a + b, 0) / n;
+            let num = 0, dx2 = 0, dy2 = 0;
+            for (let i = 0; i < n; i++) {
+                const dx = x[i] - mx;
+                const dy = y[i] - my;
+                num += dx * dy;
+                dx2 += dx * dx;
+                dy2 += dy * dy;
+            }
+            const den = Math.sqrt(dx2 * dy2);
+            return den === 0 ? 0 : num / den;
+        }
+
+        function calcularRegresionLineal(yValues) {
+            const n = yValues.length;
+            if (n <= 1) return { linea: yValues, pendiente: 0, intercepto: yValues[0] || 0 };
+            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+            for (let i = 0; i < n; i++) {
+                sumX += i;
+                sumY += yValues[i];
+                sumXY += i * yValues[i];
+                sumXX += i * i;
+            }
+            const denom = (n * sumXX - sumX * sumX);
+            const m = denom === 0 ? 0 : (n * sumXY - sumX * sumY) / denom;
+            const b = (sumY - m * sumX) / n;
+            const linea = yValues.map((_, i) => Number(Math.max(0, m * i + b).toFixed(2)));
+            return { linea, pendiente: m, intercepto: b };
+        }
+
+        // 4. Actualización Integral del Dashboard y del Panel de Análisis Estadístico
+        function updateDashboard(data) {
+            datasetFiltradoActual = data;
+            const totalGlobal = datasetGlobal.length || 1;
+            const siniestros = data.length;
+            const heridos = data.reduce((sum, r) => sum + r.heridos, 0);
+            const fallecidos = data.reduce((sum, r) => sum + r.fallecidos, 0);
+
+            const conteoHoras = Array(24).fill(0);
+            const victimasHoras = Array(24).fill(0);
+            data.forEach(r => {
+                conteoHoras[r.horaNum]++;
+                victimasHoras[r.horaNum] += (r.heridos + r.fallecidos);
+            });
+
+            let maxAcc = 0, horaPico = 12;
+            conteoHoras.forEach((val, idx) => {
+                if (val > maxAcc) { maxAcc = val; horaPico = idx; }
+            });
+
+            animateCounter('kpi-siniestros', siniestros);
+            animateCounter('kpi-heridos', heridos);
+            animateCounter('kpi-fallecidos', fallecidos);
+            document.getElementById('kpi-hora-pico').textContent = `${horaPico.toString().padStart(2, '0')}:00`;
+
+            document.getElementById('kpi-siniestros-sub').textContent = `${((siniestros / totalGlobal) * 100).toFixed(1)}% del histórico global (${totalGlobal} reg.)`;
+            document.getElementById('kpi-heridos-sub').textContent = `Promedio: ${(heridos / (siniestros || 1)).toFixed(2)} heridos / siniestro`;
+            document.getElementById('kpi-fallecidos-sub').textContent = `Tasa Letalidad: ${((fallecidos / (siniestros || 1)) * 100).toFixed(2)}%`;
+            document.getElementById('kpi-hora-sub').textContent = `Pico máximo (${maxAcc} incidentes registrados)`;
+
+            // Actualizar Mapa
+            renderMapMarkers(data);
+
+            // Actualizar Gráfico 1: Distribución Horaria
+            charts.hora.data.datasets = [
+                {
+                    label: 'Siniestros por Hora',
+                    data: conteoHoras,
+                    backgroundColor: 'rgba(59, 130, 246, 0.82)',
+                    borderColor: '#60A5FA',
+                    borderWidth: 1,
+                    borderRadius: 4
+                },
+                {
+                    label: 'Víctimas (Heridos + Fallecidos)',
+                    data: victimasHoras,
+                    type: 'line',
+                    borderColor: '#F59E0B',
+                    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 3
+                }
+            ];
+            charts.hora.update();
+
+            // Actualizar Gráfico 2: Días de la Semana
+            const diasOrden = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+            const conteoDias = diasOrden.map(d => data.filter(r => r.diaSemana === d).length);
+            const conteoDiasVictimas = diasOrden.map(d => data.filter(r => r.diaSemana === d).reduce((acc, r) => acc + r.heridos + r.fallecidos, 0));
+
+            charts.dias.data.datasets = [
+                {
+                    label: 'Siniestros Totales',
+                    data: conteoDias,
+                    borderColor: '#8B5CF6',
+                    backgroundColor: 'rgba(139, 92, 246, 0.18)',
+                    fill: true
+                },
+                {
+                    label: 'Víctimas (Heridos + Fallecidos)',
+                    data: conteoDiasVictimas,
+                    borderColor: '#F59E0B',
+                    backgroundColor: 'transparent',
+                    borderDash: [5, 5]
+                }
+            ];
+            charts.dias.update();
+
+            // Actualizar Gráfico 3: Severidad
+            const soloD = data.filter(r => r.fallecidos === 0 && r.heridos === 0).length;
+            const conH = data.filter(r => r.fallecidos === 0 && r.heridos > 0).length;
+            const conF = data.filter(r => r.fallecidos > 0).length;
+
+            charts.severidad.data.datasets = [{
+                data: [soloD, conH, conF],
+                backgroundColor: [COLOR_DAMAGE, COLOR_INJURY, COLOR_FATAL],
+                borderWidth: 0,
+                hoverOffset: 8
+            }];
+            charts.severidad.update();
+
+            // Actualizar Gráfico 4: Factores Recurrentes
+            const factoresLista = [
+                { nombre: 'Taxis', val: data.filter(r => r.factores && r.factores.taxi).length, color: '#F59E0B' },
+                { nombre: 'Motocicletas', val: data.filter(r => r.factores && r.factores.moto).length, color: '#10B981' },
+                { nombre: 'Camionetas/Carga', val: data.filter(r => r.factores && r.factores.camioneta).length, color: '#3B82F6' },
+                { nombre: 'Volcamientos/Pista', val: data.filter(r => r.factores && r.factores.volcamiento).length, color: '#8B5CF6' },
+                { nombre: 'Peatones/Ciclistas', val: data.filter(r => r.factores && r.factores.peaton).length, color: '#EC4899' },
+                { nombre: 'Buses', val: data.filter(r => r.factores && r.factores.bus).length, color: '#06B6D4' },
+                { nombre: 'Alcohol/Ebriedad', val: data.filter(r => r.factores && r.factores.alcohol).length, color: '#EF4444' }
+            ];
+
+            charts.factores.data.labels = factoresLista.map(f => f.nombre);
+            charts.factores.data.datasets = [{
+                label: 'Incidentes Asociados',
+                data: factoresLista.map(f => f.val),
+                backgroundColor: factoresLista.map(f => f.color),
+                borderRadius: 4
+            }];
+            charts.factores.update();
+
+            // ====================================================================
+            // ACTUALIZAR PANEL DE ANÁLISIS ESTADÍSTICO MULTIVARIADO
+            // ====================================================================
+            actualizarPanelEstadistico(data, {
+                siniestros,
+                heridos,
+                fallecidos,
+                soloD,
+                conH,
+                conF,
+                conteoHoras,
+                victimasHoras,
+                factoresLista,
+                diasOrden
+            });
+
+            // Actualizar Tabla Principal
+            renderTable(data);
+        }
+
+        function actualizarPanelEstadistico(data, res) {
+            const { siniestros, heridos, fallecidos, soloD, conH, conF, conteoHoras, victimasHoras, factoresLista, diasOrden } = res;
+
+            document.getElementById('stat-sample-badge').textContent = `Muestra Activa: N = ${siniestros} siniestros`;
+
+            // Agrupación diaria y mensual
+            const porFecha = {};
+            const mesesNombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            const porMesMap = {};
+
+            data.forEach(r => {
+                porFecha[r.fecha] = (porFecha[r.fecha] || 0) + 1;
+                const mIdx = (typeof r.mesIdx === 'number') ? r.mesIdx : mesesNombres.indexOf(r.mes);
+                const key = mIdx >= 0 ? mIdx : 0;
+                if (!porMesMap[key]) {
+                    porMesMap[key] = {
+                        nombre: mesesNombres[key] || r.mes,
+                        siniestros: 0,
+                        heridos: 0,
+                        fallecidos: 0,
+                        soloD: 0,
+                        conH: 0,
+                        conF: 0
+                    };
+                }
+                porMesMap[key].siniestros++;
+                porMesMap[key].heridos += r.heridos;
+                porMesMap[key].fallecidos += r.fallecidos;
+                if (r.fallecidos > 0) porMesMap[key].conF++;
+                else if (r.heridos > 0) porMesMap[key].conH++;
+                else porMesMap[key].soloD++;
+            });
+
+            const mesesActivosKeys = Object.keys(porMesMap).map(Number).sort((a, b) => a - b);
+            const valoresDiarios = Object.values(porFecha);
+            const valoresMensuales = mesesActivosKeys.map(k => porMesMap[k].siniestros);
+
+            const stDiario = calcularEstadisticasArray(valoresDiarios);
+            const stMensual = calcularEstadisticasArray(valoresMensuales);
+            const stHorario = calcularEstadisticasArray(conteoHoras);
+
+            const morbilidad100 = siniestros > 0 ? ((heridos / siniestros) * 100) : 0;
+            const letalidad100 = siniestros > 0 ? ((fallecidos / siniestros) * 100) : 0;
+            const probVictima = siniestros > 0 ? (((conH + conF) / siniestros) * 100) : 0;
+            const isp = siniestros > 0 ? ((1 * soloD + 3 * conH + 10 * conF) / siniestros) : 0;
+            const rPearson = calcularPearson(conteoHoras, victimasHoras);
+
+            // Pintar las 8 tarjetas de métricas estadísticas
+            document.getElementById('stat-media-diaria').textContent = `${stDiario.mean.toFixed(2)} sin./día`;
+            document.getElementById('stat-media-mensual').textContent = `Media mensual: ${stMensual.mean.toFixed(2)} sin./mes (${valoresDiarios.length} días activos)`;
+
+            document.getElementById('stat-mediana-iqr').textContent = `Me: ${stDiario.median.toFixed(1)} | IQR: ${stDiario.iqr.toFixed(1)}`;
+            document.getElementById('stat-cuartiles-desc').textContent = `Cuartiles diarios: Q1 = ${stDiario.q1.toFixed(1)}, Q3 = ${stDiario.q3.toFixed(1)} (Máx: ${Math.max(0, ...valoresDiarios)}/día)`;
+
+            document.getElementById('stat-std-var').textContent = `σ = ${stHorario.stdDev.toFixed(2)}`;
+            document.getElementById('stat-varianza-desc').textContent = `Varianza horaria (σ²): ${stHorario.variance.toFixed(2)} | σ mensual: ${stMensual.stdDev.toFixed(2)}`;
+
+            document.getElementById('stat-cv-val').textContent = `${stHorario.cv.toFixed(1)}%`;
+            document.getElementById('stat-cv-desc').textContent = `CV mensual: ${stMensual.cv.toFixed(1)}% | CV diario: ${stDiario.cv.toFixed(1)}%`;
+
+            document.getElementById('stat-morbilidad').textContent = `${morbilidad100.toFixed(1)}`;
+            document.getElementById('stat-prob-victima').textContent = `Probabilidad de víctimas P(V): ${probVictima.toFixed(1)}% (${conH + conF} eventos)`;
+
+            document.getElementById('stat-letalidad').textContent = `${letalidad100.toFixed(2)}`;
+            document.getElementById('stat-letalidad-desc').textContent = `Siniestros fatales: ${conF} eventos (${fallecidos} fallecidos)`;
+
+            document.getElementById('stat-isp-val').textContent = `${isp.toFixed(2)}`;
+
+            document.getElementById('stat-pearson-val').textContent = `r = ${rPearson.toFixed(3)}`;
+            let fuerzaCorr = "Asociación moderada positiva";
+            if (Math.abs(rPearson) >= 0.7) fuerzaCorr = "Asociación lineal fuerte";
+            else if (Math.abs(rPearson) < 0.35) fuerzaCorr = "Asociación lineal débil";
+            document.getElementById('stat-pearson-desc').textContent = `${fuerzaCorr} (hora vs. víctimas)`;
+
+            // Gráfico 5: Evolución Mensual + Recta de Regresión Lineal
+            const labelsMes = mesesActivosKeys.map(k => porMesMap[k].nombre);
+            const dataMesSiniestros = mesesActivosKeys.map(k => porMesMap[k].siniestros);
+            const dataMesVictimas = mesesActivosKeys.map(k => porMesMap[k].heridos + porMesMap[k].fallecidos);
+            const reg = calcularRegresionLineal(dataMesSiniestros);
+
+            charts.evolucionMensual.data.labels = labelsMes;
+            charts.evolucionMensual.data.datasets = [
+                {
+                    label: 'Siniestros Mensuales',
+                    data: dataMesSiniestros,
+                    backgroundColor: 'rgba(59, 130, 246, 0.75)',
+                    borderColor: '#60A5FA',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    order: 2
+                },
+                {
+                    label: 'Víctimas (Heridos + Fallecidos)',
+                    data: dataMesVictimas,
+                    backgroundColor: 'rgba(245, 158, 11, 0.78)',
+                    borderColor: '#FBBF24',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    order: 3
+                },
+                {
+                    label: `Tendencia Lineal (m = ${reg.pendiente >= 0 ? '+' : ''}${reg.pendiente.toFixed(2)}/mes)`,
+                    data: reg.linea,
+                    type: 'line',
+                    borderColor: '#EF4444',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2.5,
+                    borderDash: [6, 4],
+                    pointRadius: 3,
+                    order: 1
+                }
+            ];
+            charts.evolucionMensual.update();
+
+            // Gráfico 6: Franja Horaria vs. Nivel de Severidad
+            const franjasKeys = ["Madrugada", "Mañana", "Tarde", "Noche"];
+            const franjaDanos = franjasKeys.map(f => data.filter(r => r.franja === f && r.fallecidos === 0 && r.heridos === 0).length);
+            const franjaHeridos = franjasKeys.map(f => data.filter(r => r.franja === f && r.fallecidos === 0 && r.heridos > 0).length);
+            const franjaFatal = franjasKeys.map(f => data.filter(r => r.franja === f && r.fallecidos > 0).length);
+
+            charts.franjaSeveridad.data.datasets = [
+                {
+                    label: 'Solo Daños Materiales',
+                    data: franjaDanos,
+                    backgroundColor: COLOR_DAMAGE,
+                    borderRadius: 3
+                },
+                {
+                    label: 'Con Heridos',
+                    data: franjaHeridos,
+                    backgroundColor: COLOR_INJURY,
+                    borderRadius: 3
+                },
+                {
+                    label: 'Con Fallecidos',
+                    data: franjaFatal,
+                    backgroundColor: COLOR_FATAL,
+                    borderRadius: 3
+                }
+            ];
+            charts.franjaSeveridad.update();
+
+            // Gráfico 7: Diagrama de Pareto (80/20) de Factores
+            const factoresOrdenados = [...factoresLista].sort((a, b) => b.val - a.val);
+            const sumaFactores = factoresOrdenados.reduce((acc, f) => acc + f.val, 0) || 1;
+            let acum = 0;
+            const paretoPorc = factoresOrdenados.map(f => {
+                acum += f.val;
+                return Number(((acum / sumaFactores) * 100).toFixed(1));
+            });
+
+            charts.pareto.data.labels = factoresOrdenados.map(f => f.nombre);
+            charts.pareto.data.datasets = [
+                {
+                    label: 'Frecuencia Absoluta',
+                    data: factoresOrdenados.map(f => f.val),
+                    backgroundColor: 'rgba(139, 92, 246, 0.78)',
+                    borderColor: '#A78BFA',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    yAxisID: 'y',
+                    order: 2
+                },
+                {
+                    label: 'Frecuencia Acumulada (%)',
+                    data: paretoPorc,
+                    type: 'line',
+                    borderColor: '#10B981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                    borderWidth: 2.5,
+                    pointRadius: 4,
+                    tension: 0.25,
+                    yAxisID: 'y1',
+                    order: 1
+                }
+            ];
+            charts.pareto.update();
+
+            // Gráfico 8: Concentración en Zonas Críticas (Radio Haversine 300 m)
+            const zonasStats = ZONAS_CRITICAS.map(z => {
+                const enZona = data.filter(r => haversineMetros(r.lat, r.lng, z.lat, z.lng) <= z.radioMetros);
+                const vict = enZona.reduce((acc, r) => acc + r.heridos + r.fallecidos, 0);
+                return {
+                    nombre: z.nombre.replace('Sector ', ''),
+                    siniestros: enZona.length,
+                    victimas: vict
+                };
+            });
+
+            charts.zonasCriticas.data.labels = zonasStats.map(z => z.nombre);
+            charts.zonasCriticas.data.datasets = [
+                {
+                    label: 'Siniestros en Radio (300 m)',
+                    data: zonasStats.map(z => z.siniestros),
+                    backgroundColor: 'rgba(6, 182, 212, 0.8)',
+                    borderColor: '#22D3EE',
+                    borderWidth: 1,
+                    borderRadius: 4
+                },
+                {
+                    label: 'Víctimas en Zona Crítica',
+                    data: zonasStats.map(z => z.victimas),
+                    backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                    borderColor: '#F87171',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }
+            ];
+            charts.zonasCriticas.update();
+
+            // Renderizar Matriz de Contingencia (Día de la Semana x Franja Horaria)
+            renderizarMatrizContingencia(data, diasOrden, franjasKeys, siniestros);
+
+            // Renderizar Tabla Resumen Estadístico Mensual
+            renderizarTablaEstadisticaMensual(mesesActivosKeys, porMesMap, siniestros);
+        }
+
+        function renderizarMatrizContingencia(data, diasOrden, franjasKeys, totalSiniestros) {
+            const tbody = document.getElementById('contingency-body');
+            tbody.innerHTML = '';
+
+            const matriz = {};
+            let maxCelda = 1;
+            const colTotales = { Madrugada: 0, Mañana: 0, Tarde: 0, Noche: 0 };
+
+            diasOrden.forEach(d => {
+                matriz[d] = { Madrugada: 0, Mañana: 0, Tarde: 0, Noche: 0, total: 0 };
+            });
+
+            data.forEach(r => {
+                if (matriz[r.diaSemana] && matriz[r.diaSemana][r.franja] !== undefined) {
+                    matriz[r.diaSemana][r.franja]++;
+                    matriz[r.diaSemana].total++;
+                    colTotales[r.franja]++;
+                    if (matriz[r.diaSemana][r.franja] > maxCelda) {
+                        maxCelda = matriz[r.diaSemana][r.franja];
+                    }
+                }
+            });
+
+            diasOrden.forEach(d => {
+                const fila = matriz[d];
+                const porc = totalSiniestros > 0 ? ((fila.total / totalSiniestros) * 100).toFixed(1) : '0.0';
+                const tr = document.createElement('tr');
+
+                const celdasHtml = franjasKeys.map(f => {
+                    const val = fila[f];
+                    const intensidad = maxCelda > 0 ? (val / maxCelda) : 0;
+                    const alpha = (0.08 + intensidad * 0.55).toFixed(2);
+                    const bg = val === 0 ? 'transparent' : `rgba(59, 130, 246, ${alpha})`;
+                    return `<td style="background: ${bg}; font-weight: ${val >= maxCelda * 0.7 ? '700' : '400'};">${val}</td>`;
+                }).join('');
+
+                tr.innerHTML = `
+                    <td class="day-col">${d}</td>
+                    ${celdasHtml}
+                    <td style="font-weight: 700; color: #F8FAFC;">${fila.total}</td>
+                    <td style="color: #93C5FD; font-weight: 700;">${porc}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const trTotal = document.createElement('tr');
+            trTotal.className = 'total-row';
+            trTotal.innerHTML = `
+                <td class="day-col" style="color: #93C5FD;">TOTAL FRANJA</td>
+                <td>${colTotales.Madrugada}</td>
+                <td>${colTotales.Mañana}</td>
+                <td>${colTotales.Tarde}</td>
+                <td>${colTotales.Noche}</td>
+                <td>${totalSiniestros}</td>
+                <td>100.0%</td>
+            `;
+            tbody.appendChild(trTotal);
+        }
+
+        function renderizarTablaEstadisticaMensual(mesesKeys, porMesMap, totalSiniestros) {
+            const tbody = document.getElementById('monthly-stats-body');
+            tbody.innerHTML = '';
+
+            if (mesesKeys.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#94A3B8;">Sin datos para los filtros seleccionados</td></tr>`;
+                return;
+            }
+
+            mesesKeys.forEach(k => {
+                const m = porMesMap[k];
+                const porc = totalSiniestros > 0 ? ((m.siniestros / totalSiniestros) * 100).toFixed(1) : '0.0';
+                const morb = m.siniestros > 0 ? ((m.heridos / m.siniestros) * 100).toFixed(1) : '0.0';
+                const ispMes = m.siniestros > 0 ? ((1 * m.soloD + 3 * m.conH + 10 * m.conF) / m.siniestros).toFixed(2) : '0.00';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${m.nombre}</strong></td>
+                    <td>${m.siniestros}</td>
+                    <td>${porc}%</td>
+                    <td style="color: #FCD34D; font-weight: 700;">${m.heridos}</td>
+                    <td style="color: ${m.fallecidos > 0 ? '#FCA5A5' : '#94A3B8'}; font-weight: 700;">${m.fallecidos}</td>
+                    <td>${morb}</td>
+                    <td style="color: #C4B5FD; font-weight: 700;">${ispMes}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 5. Renderizado Dinámico de la Tabla de Registros (Sin iconos)
+        function renderTable(data) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            document.getElementById('table-counter').textContent = `${data.length} Registros`;
+
+            const displayData = data.slice(0, 150);
+
+            displayData.forEach(r => {
+                const tr = document.createElement('tr');
+
+                let sevColor = COLOR_DAMAGE;
+                let sevText = "Solo Daños Materiales";
+                let victText = "Sin víctimas";
+
+                if (r.fallecidos > 0) {
+                    sevColor = COLOR_FATAL;
+                    sevText = "Con Fallecidos";
+                    victText = `${r.fallecidos} Fallecido(s)${r.heridos > 0 ? ', ' + r.heridos + ' Her.' : ''}`;
+                } else if (r.heridos > 0) {
+                    sevColor = COLOR_INJURY;
+                    sevText = "Con Heridos";
+                    victText = `${r.heridos} Herido(s)`;
+                }
+
+                tr.innerHTML = `
+                    <td><strong>#${r.id}</strong></td>
+                    <td class="col-time"><strong>${r.fecha}</strong><br><span style="color:#94A3B8">${r.hora}</span></td>
+                    <td><strong>${r.diaSemana}</strong><br><span style="color:#94A3B8">${r.franja}</span></td>
+                    <td><strong style="color: #F8FAFC">${r.tipo_reporte}</strong></td>
+                    <td style="max-width: 340px; color: #E2E8F0;">${r.descripcion}</td>
+                    <td><span style="color: ${sevColor}; font-weight: 700;">${sevText}</span></td>
+                    <td><strong>${victText}</strong></td>
+                    <td style="font-size: 0.85rem; color: #94A3B8;">${r.lat.toFixed(5)},<br>${r.lng.toFixed(5)}</td>
+                    <td>
+                        <button class="btn-zoom" onclick="zoomToMarker(${r.lat}, ${r.lng})">Ver en Mapa</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 6. Filtros en Tiempo Real
+        function aplicarFiltrosActuales() {
+            const valSev = document.getElementById('filter-severity').value;
+            const valFranja = document.getElementById('filter-franja').value;
+            const valDia = document.getElementById('filter-dia').value;
+            const valMes = document.getElementById('filter-mes').value;
+            const query = document.getElementById('search-input').value.toLowerCase().trim();
+
+            const filtered = datasetGlobal.filter(r => {
+                if (valSev === 'FATAL' && r.fallecidos === 0) return false;
+                if (valSev === 'INJURY' && (r.fallecidos > 0 || r.heridos === 0)) return false;
+                if (valSev === 'DAMAGE' && (r.fallecidos > 0 || r.heridos > 0)) return false;
+
+                if (valFranja !== 'ALL' && r.franja !== valFranja) return false;
+                if (valDia !== 'ALL' && r.diaSemana !== valDia) return false;
+                if (valMes !== 'ALL' && r.mes !== valMes) return false;
+
+                if (query) {
+                    const str = `${r.id} ${r.descripcion} ${r.tipo_reporte} ${r.diaSemana} ${r.franja} ${r.mes} ${r.fecha}`.toLowerCase();
+                    if (!str.includes(query)) return false;
+                }
+                return true;
+            });
+
+            updateDashboard(filtered);
+        }
+
+        function setupEventListeners() {
+            document.getElementById('filter-severity').addEventListener('change', aplicarFiltrosActuales);
+            document.getElementById('filter-franja').addEventListener('change', aplicarFiltrosActuales);
+            document.getElementById('filter-dia').addEventListener('change', aplicarFiltrosActuales);
+            document.getElementById('filter-mes').addEventListener('change', aplicarFiltrosActuales);
+            document.getElementById('search-input').addEventListener('input', aplicarFiltrosActuales);
+
+            document.getElementById('btn-reset').addEventListener('click', () => {
+                document.getElementById('filter-severity').value = 'ALL';
+                document.getElementById('filter-franja').value = 'ALL';
+                document.getElementById('filter-dia').value = 'ALL';
+                document.getElementById('filter-mes').value = 'ALL';
+                document.getElementById('search-input').value = '';
+                updateDashboard(datasetGlobal);
+            });
+        }
+
+        // 7. Exportación de Datos Abiertos (CSV y GeoJSON) desde el Geoportal Analítico
+        window.exportarCSVFiltrado = function() {
+            if (!datasetFiltradoActual || datasetFiltradoActual.length === 0) return;
+            const headers = ['id', 'fecha', 'hora', 'diaSemana', 'mes', 'franja', 'tipo_reporte', 'severidad', 'fallecidos', 'heridos', 'lat', 'lng', 'zonaCercana', 'descripcion'];
+            let csv = headers.join(',') + '\n';
+
+            datasetFiltradoActual.forEach(r => {
+                const row = headers.map(h => {
+                    const val = r[h] !== undefined && r[h] !== null ? String(r[h]).replace(/"/g, '""') : '';
+                    return `"${val}"`;
+                });
+                csv += row.join(',') + '\n';
+            });
+
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `analisis_siniestros_riobamba_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+        };
+
+        window.exportarGeoJSONFiltrado = function() {
+            if (!datasetFiltradoActual || datasetFiltradoActual.length === 0) return;
+            const features = datasetFiltradoActual.map(r => ({
+                type: "Feature",
+                geometry: { type: "Point", coordinates: [r.lng, r.lat] },
+                properties: { ...r }
+            }));
+
+            const geojson = {
+                type: "FeatureCollection",
+                metadata: {
+                    titulo: "Geoportal Analítico de Siniestros de Tránsito — Riobamba",
+                    total_registros: features.length,
+                    crs_recomendado: "EPSG:32717 (WGS 84 / UTM zone 17S)"
+                },
+                features
+            };
+
+            const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `siniestros_riobamba_${new Date().toISOString().slice(0, 10)}.geojson`;
+            a.click();
+        };
+
+        // 8. Animación Numérica para Contadores KPI
+        function animateCounter(id, targetValue) {
+            const el = document.getElementById(id);
+            const duration = 650;
+            const startValue = parseInt(el.textContent, 10) || 0;
+            const startTime = performance.now();
+
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const current = Math.floor(startValue + (targetValue - startValue) * (1 - Math.pow(1 - progress, 3)));
+                el.textContent = current;
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                } else {
+                    el.textContent = targetValue;
+                }
+            }
+            requestAnimationFrame(update);
+        }
+    </script>
+</body>
+</html>
